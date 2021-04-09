@@ -52,17 +52,26 @@ def load(path):
     """For now, a monolithic top-level function"""
     # TOP: 16 + 8 * num_missions
     #   file_size
-    #   PLAYER_PARMS offset
-    #   GAMEPLAY_PARMS offset
-    #   DATA_PARMS offset
-    #   mission_data
+    #   offset PLAYER_PARMS
+    #   offset GAMEPLAY_PARMS
+    #   offset DATA_PARMS
+    #   mission_data: num_missions * data[8]
     # HEAD: 24
-    #   4 offsets: ?
-    #   NAME offset
-    #   CALLSIGN offset
+    #   offset FORM_0
+    #   offset special
+    #   offset FORM_1
+    #   offset FORM_2
+    #   offset PLAYERNAME
+    #   offset CALLSIGN
     # PLAYER_PARMS: 9
     # GAMEPLAY_PARMS: variable
     # DATA_PARMS: variable
+    # RECORDS:
+    #   string 'NAME'\0
+    #   pad[1] = \0
+    #   data_size[2] (BIG Endian!)
+    #   data[data_size]
+    # if record NAME is FORM, REALFORM, FFORM: record is a container (Form)
     STC_INT    = struct.Struct('<I')
     STC_OFFSET = struct.Struct('<H2s')
     HEAD_SIZE = 6 * STC_INT.size
