@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-#
-# Privateer - Library and editor for 'Wing Commander: Privateer' saved games
+# PrivTool - Library and editor for 'Wing Commander: Privateer' saved games
 #
 #    Copyright (C) 2021 Rodrigo Silva (MestreLion) <linux@rodrigosilva.com>
 #
@@ -170,15 +168,11 @@ def load(path):
 
 
 def main(argv: list = None):
-    usage = "Usage: %s SAVEFILE"
+    logging.basicConfig(level=logging.DEBUG, format='%(levelname)-5.5s: %(message)s')
+    usage = "Usage: privtool SAVEFILE"
     if not argv or len(argv) < 2:
         log.error("Missing required argument SAVEFILE")
-        log.error(usage, sys.argv[0])
+        log.error(usage)
         return 1
 
     Save(argv[1])
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)-5.5s: %(message)s')
-    sys.exit(main(sys.argv))

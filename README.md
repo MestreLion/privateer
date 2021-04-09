@@ -11,8 +11,8 @@ Usage
 #### Library
 
 ``` pycon
->>> import privateer
->>> save = privateer.Save("/path/to/SAVE.SAV")
+>>> import privtool
+>>> save = privtool.Save("/path/to/SAVE.SAV")
 >>> save.player_name
 'RODRIGO SILVA'
 >>> save.call_sign
@@ -23,7 +23,7 @@ Usage
 #### Command-line
 
 ```sh
-$ ./privateer.py "/path/to/SAVE.SAV"
+$ python3 -m privool "/path/to/SAVE.SAV"
 DEBUG: Offset padding: b'\x00\xe0'
 DEBUG: file_size = 2649, off_head = 40, off_player = 64, off_gameplay = 73, off_data = 83
 INFO : num_missions = 3
