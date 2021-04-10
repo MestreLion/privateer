@@ -165,3 +165,21 @@ class binopen:
             log.warning("Padding mismatch after position %s in %s, record %r:"
                         " expected %r, found %r", pos, self.name, name, NUL, pad)
         return name, size
+
+    def check_pos(self, expected_pos, who="it was", seek=True, warn=True):
+        """Return True if file's current read position is <expected_pos>
+
+        If it is not, then log a warning if <warn>, telling <who> was expecting it,
+        and seek to this expected offset if <seek>.
+
+        Used for testing read contiguity at on known offsets.
+        """
+        pos = self._f.tell()
+        if pos == expected_pos:
+            return True
+        if warn:
+            log.warning("%s is currently at read offset %s, %s expected %s",
+                        self.name, pos, who, expected_pos)
+        if seek:
+            self._f.seek(expected_pos)
+        return False

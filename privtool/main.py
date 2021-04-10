@@ -96,6 +96,10 @@ def load(path):
             "off_data = %(off_data)s",
         )), locals())
 
+        if file_size != os.path.getsize(path):
+            log.warning("File size mismatch in %s: %s, expected %s",
+                        path, os.path.getsize(path), file_size)
+
         # Mission headers
         num_missions = (off_head - f.tell()) / MISSION_HEAD_SIZE
         if not num_missions == int(num_missions):
@@ -134,25 +138,26 @@ def load(path):
             log.warning("Name/Callsign offset mismatch for file size %s: %s, %s",
                         file_size, off_playername, off_callsign)
 
+        # *_PARMS #############################################################
+        # As we're not reading them yet, position file cursor as if we did
+        f.seek(record_offsets[0])
+
         # Records #############################################################
         for offset in record_offsets:
-            f.seek(offset)
+            f.check_pos(offset)
             name, size = f.read_record_header()
             data = f.read(size)
             log.info("%s at offset %s, data size: %3d bytes", name, offset, size)
+            if not name == 'FORM':
+                log.warning("Top-level record is expected to be a FORM")
             log.debug(data)
 
         # Name and Callsign ###################################################
-        off_current = f.tell()
-        f.seek(off_playername)
+        f.check_pos(off_playername, "sort of")  # yeah, it overlaps 1 byte
         playername = f.read_fixed_string(MAX_SIZE_PLAYERNAME)
         callsign   = f.read_fixed_string(MAX_SIZE_CALLSIGN)
         log.info("%r / %r ", playername, callsign)
-        f.seek(off_current)
-
-    if file_size != os.path.getsize(path):
-        log.warning("File size mismatch in %s: %s, expected %s",
-                    path, os.path.getsize(path), file_size)
+        f.check_pos(file_size)
 
 
 def main(argv: list = None):
