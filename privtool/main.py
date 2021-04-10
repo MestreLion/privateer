@@ -145,9 +145,10 @@ def load(path):
         # Records #############################################################
         for offset in record_offsets:
             f.check_pos(offset)
-            name, size = f.read_record_header()
-            data = f.read(size)
-            log.info("%s at offset %s, data size: %3d bytes", name, offset, size)
+            name, hsize, dsize = f.read_record_header()
+            data = f.read(dsize)
+            log.info("%s at offset %s, total size %3d: header %2d, data %3d",
+                     name, offset, hsize + dsize, hsize, dsize)
             if not name == 'FORM':
                 log.warning("Top-level record is expected to be a FORM")
             log.debug(data)

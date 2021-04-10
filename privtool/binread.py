@@ -138,7 +138,7 @@ class binopen:
                         " truncating it: %r", pos, self.name, s)
         return text[:size-1].decode(encoding)
 
-    def read_string(self, max_size=0, encoding='ascii'):
+    def read_string(self, max_size=0, encoding='ascii', return_size=False):
         """Read from file until NUL or up to <max_size>, and return the string.
 
         Returned string will not contain the terminating NUL. If <max_size> is
@@ -146,25 +146,31 @@ class binopen:
         not mandatory, so unlike read_fixed_string() this might return a string
         of <max_size> length, and will not log a warning if NUL was not found
         or end of file was reached.
+
+        If <return_size>, return a 2-tuple (<string>, <bytes_read>)
         """
+        pos = self._f.tell()
         buffer = b''
+        i = 0
         for i, c in enumerate(self, 1):
             if c == NUL:
                 break
             buffer += c
             if max_size and 0 < max_size <= i:
                 break
-        return buffer.decode(encoding)
+        assert i == self._f.tell() - pos
+        text = buffer.decode(encoding)
+        return (text, i) if return_size else text
 
     def read_record_header(self):
-        """Return name and data size of a record. API subject to change."""
+        """Return name, header size and data size of a record. API subject to change."""
         pos = self._f.tell()
-        name = self.read_string()
-        pad, size = STC_SIZE.unpack(self._f.read(STC_SIZE.size))
+        name, name_size = self.read_string(return_size=True)
+        pad, data_size = STC_SIZE.unpack(self._f.read(STC_SIZE.size))
         if not pad == NUL:
             log.warning("Padding mismatch after position %s in %s, record %r:"
                         " expected %r, found %r", pos, self.name, name, NUL, pad)
-        return name, size
+        return name, name_size + STC_SIZE.size, data_size
 
     def check_pos(self, expected_pos, who="it was", seek=True, warn=True):
         """Return True if file's current read position is <expected_pos>
