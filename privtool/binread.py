@@ -26,7 +26,8 @@ class binopen:
 
     Differences/Additions:
     - <mode> is always binary. Any 't' in <mode> will be ignored and log a warning.
-    - Iterates on files by <chunk_size> bytes instead of by lines.
+    - Iterates on files by byte instead of by line. Use iter_read() to choose a
+        larger chunk size.
     - <offset_pad> sets the default padding data for read_offset().
     - read_*() methods for reading structured data, and their corresponding
         *_SIZE properties for bytes consumed by each method.
@@ -36,9 +37,6 @@ class binopen:
     def __init__(self, path, mode='rb', **kwargs):
         # Padding used in offsets
         self.offset_pad = kwargs.pop('offset_pad', b'\x00\xE0')
-
-        # Chunk size used when iterating on file
-        self.chunk_size = kwargs.pop('chunk_size', 1)
 
         # Handle mode
         if 't' in mode:
@@ -76,7 +74,10 @@ class binopen:
         return getattr(self._f, item)
 
     def __iter__(self):
-        return iter(lambda: self._f.read(self.chunk_size), b'')
+        return self.iter_read(1)
+
+    def iter_read(self, chunk_size=1):
+        return iter(lambda: self._f.read(chunk_size), b'')
 
     def read_int(self):
         """Read and return a 4-byte little-endian integer from file"""
