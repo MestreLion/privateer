@@ -28,14 +28,16 @@ class binopen:
     - <mode> is always binary. Any 't' in <mode> will be ignored and log a warning.
     - Iterates on files by byte instead of by line. Use iter_read() to choose a
         larger chunk size.
-    - <offset_pad> sets the default padding data for read_offset().
+    - <offset_pad> sets the default padding value expected by read_offset(), by
+        default b'\x00\xE0'. This might be blank in future versions, which will
+        set as default the padding found by the first read_offset() call.
     - read_*() methods for reading structured data, and their corresponding
         *_SIZE properties for bytes consumed by each method.
     - All other attributes, including methods, are proxied to the underlying
         file object.
     """
     def __init__(self, path, mode='rb', **kwargs):
-        # Padding used in offsets
+        # Default padding expected by read_offset()
         self.offset_pad = kwargs.pop('offset_pad', b'\x00\xE0')
 
         # Handle mode
@@ -83,25 +85,29 @@ class binopen:
         """Read and return a 4-byte little-endian integer from file"""
         return STC_INT.unpack(self._f.read(STC_INT.size))[0]
 
-    def read_offset(self):
+    def read_offset(self, padding=b''):
         """Read a 4-byte segment:offset from file and return the 2-byte offset.
 
         It is assumed the offset is the *first* 2 bytes, in little-endian notation.
-        Segment is compared to the expected <offset_pad> set when file was opened,
-        logging a warning whenever it changes, and then discarded as padding.
+
+        Segment is regarded as padding. It is compared to the expected <padding>,
+        or to the default <offset_pad> set when file was opened, logging a warning
+        whenever it changes and setting it as the new default for this file.
 
         Example, assuming the next 4 bytes on file are b'\x34\x12\xAA\xFF':
         file.read_offset() -> 0x1234 = 4660
         """
         off, pad = STC_OFFSET.unpack(self._f.read(STC_OFFSET.size))
-        # Save the first padding
-        if not self.offset_pad:
+        if not padding:
+            padding = self.offset_pad
+        # Save the first padding found, for future calls
+        if not padding:
+            log.debug("Offset padding, now set as default for this file: %r", pad)
             self.offset_pad = pad
-            log.debug("Offset padding: %r", self.offset_pad)
         # Check if padding matches
-        elif not pad == self.offset_pad:
+        elif not pad == padding:
             log.warning("Padding mismatch in %s: %r, expected %r",
-                        self._f.name, pad, self.offset_pad)
+                        self._f.name, pad, padding)
             self.offset_pad = pad
         return off
 
