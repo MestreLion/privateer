@@ -26,8 +26,9 @@ class binopen:
 
     Differences/Additions:
     - <mode> is always binary. Any 't' in <mode> will be ignored and log a warning.
-    - Iterates on files by byte instead of by line. Use iter_read() to choose a
-        larger chunk size.
+    - Iterates on bytes instead of lines. Use iter_read() for a larger chunk size.
+    - Returned object always have a 'name' property, set to DEFAULT_NAME if
+        not available at the underlying, proxied file-like object (Streams).
     - <offset_pad> sets the default padding value expected by read_offset(), by
         default b'\x00\xE0'. This might be blank in future versions, which will
         set as default the padding found by the first read_offset() call.
@@ -36,6 +37,8 @@ class binopen:
     - All other attributes, including methods, are proxied to the underlying
         file object.
     """
+    DEFAULT_NAME = "file"
+
     def __init__(self, path, mode='rb', **kwargs):
         # Default padding expected by read_offset()
         self.offset_pad = kwargs.pop('offset_pad', b'\x00\xE0')
@@ -62,6 +65,10 @@ class binopen:
     @property
     def OFFSET_SIZE(self):
         return STC_OFFSET.size
+
+    @property
+    def name(self):
+        return getattr(self._f, 'name', self.DEFAULT_NAME)
 
     def __enter__(self):
         # As for __init__(), any exception here prevents _f.close(), be extra careful!
@@ -97,17 +104,20 @@ class binopen:
         Example, assuming the next 4 bytes on file are b'\x34\x12\xAA\xFF':
         file.read_offset() -> 0x1234 = 4660
         """
+        pos = self._f.tell()
         off, pad = STC_OFFSET.unpack(self._f.read(STC_OFFSET.size))
         if not padding:
             padding = self.offset_pad
         # Save the first padding found, for future calls
         if not padding:
-            log.debug("Offset padding, now set as default for this file: %r", pad)
+            log.debug("Offset padding after position %s, now set as default for %s: %r",
+                      pos, self.name, pad)
             self.offset_pad = pad
         # Check if padding matches
         elif not pad == padding:
-            log.warning("Padding mismatch in %s: %r, expected %r",
-                        self._f.name, pad, padding)
+            log.warning("Offset padding mismatch after position %s in %s:"
+                        " expected %r, found %r. Setting it as the new default.",
+                        pos, self.name, padding, pad)
             self.offset_pad = pad
         return off
 
@@ -119,10 +129,12 @@ class binopen:
         NUL on data. Missing the NUL, or any (discarded) non-NUL bytes after it,
         will log a warning.
         """
+        pos = self._f.tell()
         s = struct.unpack(f'{size}s', self._f.read(size))[0]
         text, nul, junk = s.partition(NUL)
         if not nul or junk.strip(NUL):
-            log.warning("Malformed NUL-terminated string, truncating: %r", s)
+            log.warning("Malformed NUL-terminated string after position %s in %s,"
+                        " truncating it: %r", pos, self.name, s)
         return text[:size-1].decode(encoding)
 
     def read_string(self, max_size=0, encoding='ascii'):
