@@ -126,8 +126,8 @@ def load(path):
 
         off_current = f.tell()
         f.seek(off_playername)
-        playername = f.read_string(MAX_SIZE_PLAYERNAME)
-        callsign   = f.read_string(MAX_SIZE_CALLSIGN)
+        playername = f.read_fixed_string(MAX_SIZE_PLAYERNAME)
+        callsign   = f.read_fixed_string(MAX_SIZE_CALLSIGN)
         log.info("%r / %r ", playername, callsign)
         f.seek(off_current)
 

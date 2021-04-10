@@ -111,7 +111,7 @@ class binopen:
             self.offset_pad = pad
         return off
 
-    def read_string(self, size, encoding='ascii'):
+    def read_fixed_string(self, size, encoding='ascii'):
         """Read <size> bytes from file and return the string up to the first NUL.
 
         The NUL terminator is expected to exist and not included in returned
@@ -124,3 +124,21 @@ class binopen:
         if not nul or junk.strip(NUL):
             log.warning("Malformed NUL-terminated string, truncating: %r", s)
         return text[:size-1].decode(encoding)
+
+    def read_string(self, max_size=0, encoding='ascii'):
+        """Read from file until NUL or up to <max_size>, and return the string.
+
+        Returned string will not contain the terminating NUL. If <max_size> is
+        not greater than zero, read up to the end of file. The terminating NUL is
+        not mandatory, so unlike read_fixed_string() this might return a string
+        of <max_size> length, and will not log a warning if NUL was not found
+        or end of file was reached.
+        """
+        buffer = b''
+        for i, c in enumerate(self, 1):
+            if c == NUL:
+                break
+            buffer += c
+            if max_size and 0 < max_size <= i:
+                break
+        return buffer.decode(encoding)
