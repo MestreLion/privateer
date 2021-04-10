@@ -144,14 +144,7 @@ def load(path):
 
         # Records #############################################################
         for offset in record_offsets:
-            f.check_pos(offset)
-            name, hsize, dsize = f.read_record_header()
-            data = f.read(dsize)
-            log.info("%s at offset %s, total size %3d: header %2d, data %3d",
-                     name, offset, hsize + dsize, hsize, dsize)
-            if not name == 'FORM':
-                log.warning("Top-level record is expected to be a FORM")
-            log.debug(data)
+            read_record(f, offset)
 
         # Name and Callsign ###################################################
         f.check_pos(off_playername, "sort of")  # yeah, it overlaps 1 byte
@@ -159,6 +152,17 @@ def load(path):
         callsign   = f.read_fixed_string(MAX_SIZE_CALLSIGN)
         log.info("%r / %r ", playername, callsign)
         f.check_pos(file_size)
+
+
+def read_record(f, offset, _level=0):
+    f.check_pos(offset)
+    name, hsize, dsize = f.read_record_header()
+    log.info("%s at offset %s, total size %3d: header %2d, data %3d",
+             name, offset, hsize + dsize, hsize, dsize)
+    if not _level and not name == 'FORM':
+        log.warning("Top-level record is expected to be a FORM")
+    data = f.read(dsize)
+    log.debug(data)
 
 
 def main(argv: list = None):
