@@ -23,13 +23,11 @@ Inspired by and made possible thanks to PREDIT from Wayne Sikes
 
 import logging
 import os.path
-import struct
-import sys
+
+from . import binread as b
 
 
-OFFSET_PAD = b''  # Padding used in offsets. Most likely always b'\x00\xE0'
-
-log = logging.getLogger('privateer')
+log = logging.getLogger(__name__)
 
 
 class Save:
@@ -44,6 +42,14 @@ class Save:
     def load(self, path):
         self.path = path
         return load(path)
+
+
+HEAD_OFFSETS = 6
+MISSION_HEAD_SIZE  = 8
+
+MAX_SIZE_PLAYERNAME = 18  # Weird, but true. Includes '\0' NUL terminator
+MAX_SIZE_CALLSIGN = 15
+MAX_NUM_MISSIONS = 4
 
 
 def load(path):
@@ -70,50 +76,16 @@ def load(path):
     #   data_size[2] (BIG Endian!)
     #   data[data_size]
     # if record NAME is FORM, REALFORM, FFORM: record is a container (Form)
-    STC_INT    = struct.Struct('<I')
-    STC_OFFSET = struct.Struct('<H2s')
-    HEAD_SIZE = 6 * STC_INT.size
-    MISSION_HEAD_SIZE  = 8
-    MAX_SIZE_PLAYERNAME = 18  # Weird, but true. Includes '\0' NUL terminator
-    MAX_SIZE_CALLSIGN = 15
-    MAX_NUM_MISSIONS = 4
-    NUL = b'\0'
-
-    def read_value(stc: struct.Struct):
-        return stc.unpack(f.read(stc.size))[0]
-
-    def read_int():
-        return STC_INT.unpack(f.read(STC_INT.size))[0]
-
-    def read_offset():
-        global OFFSET_PAD
-        off, pad = STC_OFFSET.unpack(f.read(STC_OFFSET.size))
-        # Save the first padding
-        if not OFFSET_PAD:
-            OFFSET_PAD = pad
-            log.debug("Offset padding: %s", OFFSET_PAD)
-        # Check if padding matches
-        elif not pad == OFFSET_PAD:
-            log.warning("Padding mismatch in %s: %s, expected %s",
-                        f.name, pad, OFFSET_PAD)
-            OFFSET_PAD = pad
-        return off
-
-    def read_string(sz):
-        s = struct.unpack(f'{sz}s', f.read(sz))[0]
-        text, nul, junk = s.partition(NUL)
-        if not nul or junk.strip(NUL):
-            log.warning("Malformed NUL-terminated string, truncating: %s", s)
-        return text[:sz-1].decode('ascii')
 
     offsets = []
     mission_headers = []
-    with open(path, 'rb') as f:
-        file_size    = read_int()
-        off_player   = read_offset()
-        off_gameplay = read_offset()
-        off_data     = read_offset()
-        off_head     = off_player - HEAD_SIZE
+    with b.binopen(path) as f:
+        file_size    = f.read_int()
+        off_player   = f.read_offset()
+        off_gameplay = f.read_offset()
+        off_data     = f.read_offset()
+        off_head     = off_player - HEAD_OFFSETS * f.OFFSET_SIZE
+
         log.debug(", ".join((
             "file_size = %(file_size)s",
             "off_head = %(off_head)s",
@@ -136,11 +108,11 @@ def load(path):
             log.debug("Mission %s header: %s", i, mission_headers[-1])
 
         for i in range(4):
-            offsets.append(read_offset())
+            offsets.append(f.read_offset())
             log.debug("Unknown offset: %s", offsets[-1])
 
-        off_playername = read_offset()
-        off_callsign   = read_offset()
+        off_playername = f.read_offset()
+        off_callsign   = f.read_offset()
         log.debug(", ".join((
             "off_playername = %(off_playername)s",
             "off_callsign = %(off_callsign)s",
@@ -154,8 +126,8 @@ def load(path):
 
         off_current = f.tell()
         f.seek(off_playername)
-        playername = read_string(MAX_SIZE_PLAYERNAME)
-        callsign   = read_string(MAX_SIZE_CALLSIGN)
+        playername = f.read_string(MAX_SIZE_PLAYERNAME)
+        callsign   = f.read_string(MAX_SIZE_CALLSIGN)
         log.info("%r / %r ", playername, callsign)
         f.seek(off_current)
 
