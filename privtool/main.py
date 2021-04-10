@@ -59,7 +59,7 @@ def load(path):
     #   offset PLAYER_PARMS
     #   offset GAMEPLAY_PARMS
     #   offset DATA_PARMS
-    #   mission_data: num_missions * data[8]
+    #   missions_head: num_missions * data[8]
     # HEAD: 24
     #   offset FORM_0
     #   offset special
@@ -78,8 +78,10 @@ def load(path):
     # if record NAME is FORM, REALFORM, FFORM: record is a container (Form)
 
     offsets = []
+    record_offsets = []
     mission_headers = []
     with b.binopen(path) as f:
+        # TOP #################################################################
         file_size    = f.read_int()
         off_player   = f.read_offset()
         off_gameplay = f.read_offset()
@@ -94,6 +96,7 @@ def load(path):
             "off_data = %(off_data)s",
         )), locals())
 
+        # Mission headers
         num_missions = (off_head - f.tell()) / MISSION_HEAD_SIZE
         if not num_missions == int(num_missions):
             log.error("Number of missions is not an integer: %s"
@@ -102,14 +105,21 @@ def load(path):
             return
         num_missions = int(num_missions)
         log.info("num_missions = %s", num_missions)
-
+        if not 0 <= num_missions <= MAX_NUM_MISSIONS:
+            log.warning("Non-standard number of missions: %s, expected at most %s",
+                        num_missions, MAX_NUM_MISSIONS)
         for i in range(num_missions):
             mission_headers.append(f.read(MISSION_HEAD_SIZE))
             log.debug("Mission %s header: %s", i, mission_headers[-1])
 
-        for i in range(4):
-            offsets.append(f.read_offset())
-            log.debug("Unknown offset: %s", offsets[-1])
+        # HEAD ################################################################
+        # The 2nd offset is to unknown data, the last 2 are name and callsign
+        for i in range(HEAD_OFFSETS - 2):
+            if i == 1:
+                log.debug("Unknown data offset %4d", f.read_offset())
+                continue
+            record_offsets.append(f.read_offset())
+            log.debug("FORM at file offset %4d", record_offsets[-1])
 
         off_playername = f.read_offset()
         off_callsign   = f.read_offset()
@@ -124,15 +134,17 @@ def load(path):
             log.warning("Name/Callsign offset mismatch for file size %s: %s, %s",
                         file_size, off_playername, off_callsign)
 
+        # Records #############################################################
+        for i, offset in enumerate(record_offsets):
+            pass
+
+        # Name and Callsign ###################################################
         off_current = f.tell()
         f.seek(off_playername)
         playername = f.read_fixed_string(MAX_SIZE_PLAYERNAME)
         callsign   = f.read_fixed_string(MAX_SIZE_CALLSIGN)
         log.info("%r / %r ", playername, callsign)
         f.seek(off_current)
-
-    if not 0 <= num_missions <= MAX_NUM_MISSIONS:
-        log.warning("Non-standard number of missions: %s", num_missions)
 
     if file_size != os.path.getsize(path):
         log.warning("File size mismatch in %s: %s, expected %s",
