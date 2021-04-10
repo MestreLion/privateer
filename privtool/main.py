@@ -135,8 +135,12 @@ def load(path):
                         file_size, off_playername, off_callsign)
 
         # Records #############################################################
-        for i, offset in enumerate(record_offsets):
-            pass
+        for offset in record_offsets:
+            f.seek(offset)
+            name, size = f.read_record_header()
+            data = f.read(size)
+            log.info("%s at offset %s, data size: %3d bytes", name, offset, size)
+            log.debug(data)
 
         # Name and Callsign ###################################################
         off_current = f.tell()

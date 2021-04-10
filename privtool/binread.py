@@ -13,6 +13,7 @@ import struct
 # Pre-compiled support structures. Use binopen.*_SIZE for their sizes
 STC_INT    = struct.Struct('<I')
 STC_OFFSET = struct.Struct('<H2s')
+STC_SIZE   = struct.Struct('>cH')
 
 # Terminating byte for strings
 NUL = b'\0'
@@ -154,3 +155,13 @@ class binopen:
             if max_size and 0 < max_size <= i:
                 break
         return buffer.decode(encoding)
+
+    def read_record_header(self):
+        """Return name and data size of a record. API subject to change."""
+        pos = self._f.tell()
+        name = self.read_string()
+        pad, size = STC_SIZE.unpack(self._f.read(STC_SIZE.size))
+        if not pad == NUL:
+            log.warning("Padding mismatch after position %s in %s, record %r:"
+                        " expected %r, found %r", pos, self.name, name, NUL, pad)
+        return name, size
