@@ -20,11 +20,10 @@
 
 Inspired by and made possible thanks to PREDIT from Wayne Sikes
 """
-
+import argparse
+import json
 import logging
 import os.path
-
-import argparse
 
 from . import __copyright__, __email__
 from . import binread as b
@@ -44,7 +43,7 @@ class Save:
 
     def load(self, path):
         self.path = path
-        return load(path)
+        self.records = load(path)
 
 
 HEAD_OFFSETS = 6
@@ -85,6 +84,7 @@ def load(path):
     offsets = []
     record_offsets = []
     mission_headers = []
+    records = {}
     with b.binopen(path) as f:
         # TOP #################################################################
         file_size    = f.read_int()
@@ -150,7 +150,7 @@ def load(path):
         # Records #############################################################
         forms = 0
         for offset in record_offsets:
-            _size, forms = read_record(f, offset, forms=forms)
+            _size, forms = read_record(f, offset, forms=forms, records=records)
 
         # Name and Callsign ###################################################
         f.check_pos(off_playername, "sort of")  # yeah, it overlaps 1 byte
@@ -159,8 +159,10 @@ def load(path):
         log.info("%r / %r ", playername, callsign)
         f.check_pos(file_size)
 
+        return records
 
-def read_record(f, offset, max_size=None, forms=0, level=0):
+
+def read_record(f, offset, max_size=None, forms=0, records=None, level=0):
     f.check_pos(offset)
     name, hsize, dsize, partial = f.read_record_header(max_size)
     size = hsize + dsize
@@ -170,6 +172,8 @@ def read_record(f, offset, max_size=None, forms=0, level=0):
         # Will soon be downgraded to DEBUG, as this seems to be expected
         log.warning("Partial record data after offset %s, size %d: %r",
                     offset, size, name)
+        if records is not None:
+            records['tail'] = repr(name)
         return size, forms
 
     if max_size is not None and max_size < dsize:
@@ -190,6 +194,8 @@ def read_record(f, offset, max_size=None, forms=0, level=0):
                  indent, name, offset, size, hsize, dsize, adj)
         data = f.read(dsize)
         log.debug(data)
+        if records is not None:
+            records[name] = repr(data)
         return size, forms
 
     # Containers (*FORM)
@@ -199,8 +205,12 @@ def read_record(f, offset, max_size=None, forms=0, level=0):
              indent, fullname, offset, size, hsize, dsize, adj, bar)
     rsize = 0
     forms += 1
+    if records is not None:
+        records[fullname] = recs = {}
+    else:
+        recs = None
     while rsize < dsize:
-        sz, forms = read_record(f, offset + hsize + rsize, dsize-rsize, forms, level+1)
+        sz, forms = read_record(f, offset + hsize + rsize, dsize-rsize, forms, recs, level+1)
         rsize += sz
     log.info("%sEND   %s, %s data bytes read %s%s",
              indent, fullname, rsize, bar, 28*'-')
@@ -239,4 +249,4 @@ def main(argv: list = None):
     logging.getLogger().setLevel(args.loglevel)
     log.debug(args)
 
-    Save(args.path)
+    print(json.dumps(Save(args.path).records))

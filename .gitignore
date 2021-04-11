@@ -1,5 +1,6 @@
 PREDIT
 PRIV
 *.sav
+*.json
 
 .idea/
