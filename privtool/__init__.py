@@ -42,9 +42,9 @@ if len(__version_info__) < 3: __version_info__ = (__version_info__ + 3*(0,))[:3]
 
 # Public API
 __all__ = [
-    'Save',
+    'Save', 'cli'
 ]
-from .main import Save  # noqa: E402
+from .main import Save, main as cli  # noqa: E402
 del main
 
 # https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library
