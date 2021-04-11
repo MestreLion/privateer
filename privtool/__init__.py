@@ -34,7 +34,7 @@ __email__        = "linux@rodrigosilva.com"
 __version__      = "0.0.1"
 
 __license__      = "GPLv3+"
-__copyright__    = "Copyright (C) 2021 Rodrigo Silva"
+__copyright__    = "Copyright (C) 2021 Rodrigo Silva (MestreLion)"
 
 __version_info__ = tuple(map(int, __version__.split('-')[0].split('+')[0].split('.')[:3]))
 if len(__version_info__) < 3: __version_info__ = (__version_info__ + 3*(0,))[:3]

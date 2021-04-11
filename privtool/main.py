@@ -24,6 +24,9 @@ Inspired by and made possible thanks to PREDIT from Wayne Sikes
 import logging
 import os.path
 
+import argparse
+
+from . import __copyright__, __email__
 from . import binread as b
 
 
@@ -193,12 +196,32 @@ def read_record(f, offset, forms=0, level=0):
     return size, forms
 
 
-def main(argv: list = None):
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)-5.5s: %(message)s')
-    usage = "Usage: privtool SAVEFILE"
-    if not argv or len(argv) < 2:
-        log.error("Missing required argument SAVEFILE")
-        log.error(usage)
-        return 1
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        prog=__package__,
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="\n".join((f"{__copyright__} <{__email__}>",
+                          "License: GPLv3 or later, at your choice. "
+                          "See <http://www.gnu.org/licenses/gpl>")),
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-q', '--quiet', dest='loglevel',
+        const=logging.WARNING, default=logging.INFO, action="store_const",
+        help="Suppress informative messages.")
+    group.add_argument('-v', '-d', '--verbose', '--debug', dest='loglevel',
+        const=logging.DEBUG, action="store_const",
+        help="Verbose/Debug mode, output extra info.")
 
-    Save(argv[1])
+    parser.add_argument('path', metavar='SAVEFILE', help="Save file to read.")
+
+    return parser.parse_args(argv)
+
+
+def main(argv: list = None):
+    logging.basicConfig(format='%(levelname)-8s: %(message)s')
+    args = parse_args(argv)
+    logging.getLogger().setLevel(args.loglevel)
+    log.debug(args)
+
+    Save(args.path)
