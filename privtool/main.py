@@ -150,7 +150,7 @@ def load(path):
         # Records #############################################################
         forms = 0
         for offset in record_offsets:
-            _size, forms = read_record(f, offset, forms)
+            _size, forms = read_record(f, offset, forms=forms)
 
         # Name and Callsign ###################################################
         f.check_pos(off_playername, "sort of")  # yeah, it overlaps 1 byte
@@ -160,19 +160,34 @@ def load(path):
         f.check_pos(file_size)
 
 
-def read_record(f, offset, forms=0, level=0):
+def read_record(f, offset, max_size=None, forms=0, level=0):
     f.check_pos(offset)
-    name, hsize, dsize = f.read_record_header()
+    name, hsize, dsize, partial = f.read_record_header(max_size)
     size = hsize + dsize
     indent = ' ' * 4 * level
+
+    if partial:
+        # Will soon be downgraded to DEBUG, as this seems to be expected
+        log.warning("Partial record data after offset %s, size %d: %r",
+                    offset, size, name)
+        return size, forms
+
+    if max_size is not None and max_size < dsize:
+        log.warning("Declared %s bytes of data would exceed parent's %s"
+                    " remaining size. Adjusting data size to fit.",
+                    dsize, max_size)
+        adj = f" (originally {dsize:3d})"
+        dsize = max_size
+    else:
+        adj = ""
 
     if level == 0 and not name == 'FORM':
         log.warning("Top-level record is expected to be a FORM")
 
+    # Leaf record
     if name not in RECORD_CONTAINERS:
-        # Leaf record
-        log.info("%s%-8s offset %3d, total size %3d: header %2d, data %3d",
-                 indent, name, offset, size, hsize, dsize)
+        log.info("%s%-8s offset %3d, total size %3d: header %2d, data %3d%s",
+                 indent, name, offset, size, hsize, dsize, adj)
         data = f.read(dsize)
         log.debug(data)
         return size, forms
@@ -180,12 +195,12 @@ def read_record(f, offset, forms=0, level=0):
     # Containers (*FORM)
     fullname = f'{name}-{forms:02d}'
     bar = '-' * (5 + max(0, 15 * (3 - level)))
-    log.info("%sBEGIN %s offset %3d, total size %3d: header %2d, data %3d %s",
-             indent, fullname, offset, size, hsize, dsize, bar)
+    log.info("%sBEGIN %s offset %3d, total size %3d: header %2d, data %3d%s %s",
+             indent, fullname, offset, size, hsize, dsize, adj, bar)
     rsize = 0
     forms += 1
     while rsize < dsize:
-        sz, forms = read_record(f, offset + hsize + rsize, forms, level+1)
+        sz, forms = read_record(f, offset + hsize + rsize, dsize-rsize, forms, level+1)
         rsize += sz
     log.info("%sEND   %s, %s data bytes read %s%s",
              indent, fullname, rsize, bar, 28*'-')

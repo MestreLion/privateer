@@ -138,39 +138,50 @@ class binopen:
                         " truncating it: %r", pos, self.name, s)
         return text[:size-1].decode(encoding)
 
-    def read_string(self, max_size=0, encoding='ascii', return_size=False):
+    def read_string(self, max_size=None, encoding='ascii', return_size=False):
         """Read from file until NUL or up to <max_size>, and return the string.
 
         Returned string will not contain the terminating NUL. If <max_size> is
-        not greater than zero, read up to the end of file. The terminating NUL is
-        not mandatory, so unlike read_fixed_string() this might return a string
-        of <max_size> length, and will not log a warning if NUL was not found
-        or end of file was reached.
+        None, read up to the end of file. The terminating NUL is not mandatory,
+        so unlike read_fixed_string() this might return a string of <max_size>
+        length, and will not log a warning if NUL was not found or end of file
+        was reached.
 
-        If <return_size>, return a 2-tuple (<string>, <bytes_read>)
+        If <return_size>, return a 2-tuple (<string>, <size_read>). <size_read>
+        does account for the terminating NUL if it was found.
         """
         pos = self._f.tell()
         buffer = b''
         i = 0
-        for i, c in enumerate(self, 1):
+        while max_size is None or i < max_size:
+            c = self._f.read(1)
+            i += 1
             if c == NUL:
                 break
             buffer += c
-            if max_size and 0 < max_size <= i:
-                break
         assert i == self._f.tell() - pos
         text = buffer.decode(encoding)
         return (text, i) if return_size else text
 
-    def read_record_header(self):
+    def read_record_header(self, max_size=None):
         """Return name, header size and data size of a record. API subject to change."""
         pos = self._f.tell()
-        name, name_size = self.read_string(return_size=True)
+        name, name_size = self.read_string(max_size=max_size, return_size=True)
+        # Check to see if we had (or will have) a partial read:
+        # - Name is blank or truncated (missed NIL)
+        # - Max size is set and does not hold whole header
+        if (not name or not len(name) == name_size-1 or
+                (max_size is not None and max_size < name_size + STC_SIZE.size)):
+            # Read whatever we can and return as binary data
+            self._f.seek(pos)
+            name = self._f.read() if max_size is None else self._f.read(max(0, max_size))
+            size = len(name)
+            return name, size, 0, True  # True for partial read
         pad, data_size = STC_SIZE.unpack(self._f.read(STC_SIZE.size))
         if not pad == NUL:
             log.warning("Padding mismatch after position %s in %s, record %r:"
                         " expected %r, found %r", pos, self.name, name, NUL, pad)
-        return name, name_size + STC_SIZE.size, data_size
+        return name, name_size + STC_SIZE.size, data_size, False
 
     def check_pos(self, expected_pos, who="it was", seek=True, warn=True):
         """Return True if file's current read position is <expected_pos>
