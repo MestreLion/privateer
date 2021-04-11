@@ -51,6 +51,8 @@ MAX_SIZE_PLAYERNAME = 18  # Weird, but true. Includes '\0' NUL terminator
 MAX_SIZE_CALLSIGN = 15
 MAX_NUM_MISSIONS = 4
 
+RECORD_CONTAINERS = ('FORM', 'REALFORM', 'FFORM')
+
 
 def load(path):
     """For now, a monolithic top-level function"""
@@ -143,8 +145,9 @@ def load(path):
         f.seek(record_offsets[0])
 
         # Records #############################################################
+        forms = 0
         for offset in record_offsets:
-            read_record(f, offset)
+            _size, forms = read_record(f, offset, forms)
 
         # Name and Callsign ###################################################
         f.check_pos(off_playername, "sort of")  # yeah, it overlaps 1 byte
@@ -154,15 +157,40 @@ def load(path):
         f.check_pos(file_size)
 
 
-def read_record(f, offset, _level=0):
+def read_record(f, offset, forms=0, level=0):
     f.check_pos(offset)
     name, hsize, dsize = f.read_record_header()
-    log.info("%s at offset %s, total size %3d: header %2d, data %3d",
-             name, offset, hsize + dsize, hsize, dsize)
-    if not _level and not name == 'FORM':
+    size = hsize + dsize
+    indent = ' ' * 4 * level
+
+    if level == 0 and not name == 'FORM':
         log.warning("Top-level record is expected to be a FORM")
-    data = f.read(dsize)
-    log.debug(data)
+
+    if name not in RECORD_CONTAINERS:
+        # Leaf record
+        log.info("%s%-8s offset %3d, total size %3d: header %2d, data %3d",
+                 indent, name, offset, size, hsize, dsize)
+        data = f.read(dsize)
+        log.debug(data)
+        return size, forms
+
+    # Containers (*FORM)
+    fullname = f'{name}-{forms:02d}'
+    bar = '-' * (5 + max(0, 15 * (3 - level)))
+    log.info("%sBEGIN %s offset %3d, total size %3d: header %2d, data %3d %s",
+             indent, fullname, offset, size, hsize, dsize, bar)
+    rsize = 0
+    forms += 1
+    while rsize < dsize:
+        sz, forms = read_record(f, offset + hsize + rsize, forms, level+1)
+        rsize += sz
+    log.info("%sEND   %s, %s data bytes read %s%s",
+             indent, fullname, rsize, bar, 28*'-')
+    if not rsize == dsize:
+        log.warning("Data size mismatch for %s: declared %s, actual record data is %s",
+                    fullname, dsize, rsize)
+        size = hsize + rsize
+    return size, forms
 
 
 def main(argv: list = None):
