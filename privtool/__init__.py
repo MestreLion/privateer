@@ -1,4 +1,4 @@
-# PrivTool - Library and editor for 'Wing Commander: Privateer' saved games
+# PrivTool - Library and editor for 'Wing Commander: Privateer' save files
 #
 #    Copyright (C) 2021 Rodrigo Silva (MestreLion) <linux@rodrigosilva.com>
 #
@@ -16,10 +16,9 @@
 #    along with this program. See <http://www.gnu.org/licenses/gpl.html>
 
 """
-    Package setup
+    Privateer Save Game Library / Editor
 
-Mostly setup for usage as a library, such as exporting main names from modules
-and adding NullHandler to package logger
+Inspired by and made possible thanks to PREDIT from Wayne Sikes
 """
 
 # Public API
@@ -29,7 +28,7 @@ __all__ = [
     'Save',
 ]
 from .binread import NUL, binopen
-from .main    import main as cli
+from .cli     import main as cli
 from .model   import Save
 
 

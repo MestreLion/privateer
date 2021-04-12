@@ -21,7 +21,7 @@
 
 import sys
 
-from . import main
+from . import cli
 
 
-sys.exit(main.main(sys.argv[1:]))
+sys.exit(cli.main(sys.argv[1:]))
