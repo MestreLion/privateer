@@ -22,30 +22,31 @@ Mostly setup for usage as a library, such as exporting main names from modules
 and adding NullHandler to package logger
 """
 
-# Project metadata
-__title__        = "privtool"
-__project__      = "Privateer Tools"
-__description__  = "Library and editor for 'Wing Commander: Privateer' saved games"
-__url__          = "https://github.com/MestreLion/privtool"
-
-__author__       = "Rodrigo Silva (MestreLion)"
-__email__        = "linux@rodrigosilva.com"
-
-__version__      = "0.0.1"
-
-__license__      = "GPLv3+"
-__copyright__    = "Copyright (C) 2021 Rodrigo Silva (MestreLion)"
-
-__version_info__ = tuple(map(int, __version__.split('-')[0].split('+')[0].split('.')[:3]))
-if len(__version_info__) < 3: __version_info__ = (__version_info__ + 3*(0,))[:3]
-
-
 # Public API
 __all__ = [
-    'Save', 'cli'
+    'NUL', 'binopen',
+    'cli',
+    'Save',
 ]
-from .main import Save, main as cli  # noqa: E402
-del main
+from .binread import NUL, binopen
+from .main    import main as cli
+from .model   import Save
+
+
+# Project metadata
+# noinspection PyUnresolvedReferences
+from .__about__ import (
+    __title__,
+    __project__,
+    __description__,
+    __url__,
+    __version__,
+    __version_info__,
+    __author__,
+    __email__,
+    __copyright__,
+)
+
 
 # https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library
 import logging  # noqa: E402
