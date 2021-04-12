@@ -1,0 +1,352 @@
+
+
+                  DOCUMENTATION FILE FOR PREDIT VER 2.1
+
+PREDIT is a SAV file EDITOR for Privateer by Origin.  This 2.1 upgrade to
+version 2.0 allows you to change the following game variables:
+
+	1)	pilot cash credits,
+	2)	ship type and location (relocate to any of the 60 bases),
+	3)	number of missions,
+	4)	mission selection (change to a different plot mission or
+		  force the completion of the active mission),
+	5)	pilot name and callsign,
+	6)	missile and torpedo loadouts,
+	7)	gun types and locations (including alien Steltek guns),
+	8)	super shield levels (up to Shield Generator Level 11), and
+	9)	engine upgrades.
+
+A unique DATABASE feature has been included.  You can store individual
+vehicle component records (edited or unedited) in the database file.  This
+file can then be used by yourself or others who want to selectively upgrade
+their individual vehicles.  For example, if you create a "super engine" record,
+you can now store that record in the database where your friends can "install"
+it on their vehicles.  Put your database file on a network or bulletin-board
+service for LOTS of people to use!
+
+A FULL HEX/ASCII editor is available for "tailoring" your SAV files, individual
+SAV file records, and the records stored in the database.
+
+PREDIT provides simple utilities for those who don't want to "experiment" with
+their SAV files -- they just need to complete a mission, or they want better
+shields, engines, more $$$, etc.  It also now caters better to those who want
+to edit SAV file data and create their own custom vehicle components.  Plus you
+can now store these components and share them with others.
+
+BIG WARNING:   The author has found that the editing of some vehicle SAV file
+components causes Privateer to HALT your system.  BACKUP THOSE SAV FILES BEFORE
+EDITING!!!
+
+An updated version of the author's database file, PRECS.DAT, has been included.
+It contains various vehicle component records including some internal engine
+records the game uses for creating enemy and alien vehicle engines.  Call up
+the database menu and view the record listing.  Items labeled "GENGINE" are the internal game engines.  Experiment with these engines -- some are quite
+interesting.
+
+The DEBUG switch is still active for viewing all debug listings.  Some of these
+listings get quite long, but if you want to write your own Privateer analysis or
+edit routines, this is a great place to start!
+
+A few users reported PREDIT problems when trying to manipulate SAV files which
+contained saved missions.  Their computers either halted or went into endless
+loops when PREDIT tried to load a SAV file containing more than one saved
+mission.  (Privateer can save up to three missions acquired from either the
+Mission Computer, Mercenary Guild, or Merchants Guild. It will also keep track
+of where you are in the primary plot line missions.)  This version of PREDIT
+WILL READ AND PROCESS ALL TYPES OF SAV FILES, INCLUDING THOSE WITH SEVERAL
+SAVED MISSIONS STORED IN THEM.  If any more file structure related problems
+arise, please contact the author.
+
+
+
+
+
+
+
+
+*******************************************************************************
+                          INSTALLATION
+Installation is easy.  Just copy PREDIT.EXE, PRECS.DAT, and this text file
+(if desired) to your Privateer directory (\privater, usually).  Run PREDIT by
+typing "predit" followed by the SAV file you want to modify. (Privateer SAV
+files are created by the game's SAVE command.  You enter a name, up to 8 chars,
+and the game adds a ".sav" suffix.  These files are stored in your game
+directory.)  You MUST type the SAV file's FULL NAME INCLUDING THE SAV SUFFIX.
+For example, if your SAV file is named "myfile.sav", run this routine by typing
+"predit myfile.sav".
+
+You will be prompted for viewing DEBUG info.  Answer 'n' if you don't want to
+view it.  Next, you'll be given a menu of things to do.  Follow the on screen
+directions.  If you make a mistake, try to go back and fix it and worst case,
+exit PREDIT without saving your SAV file.  This is a simple routine - nothing
+else to do!
+
+*******************************
+PLEASE NOTE -- Compare parameters listed by PREDIT with the game's parameter
+listings (using your "PERSONAL COMPUTER" or the "SHIP DEALER" in the game).
+If you want to verify your equipment loading, go to the "SHIP DEALER" and
+select "SELL" mode in the "REPAIR AND UPGRADE" area.  Scroll through the
+computer listing and verify that you indeed have the equipment you want. If
+you find ANY discrepancies between PREDIT's data (such as a cash credit
+amount) and the game's data, please DO NOT KEEP ANY CHANGES TO YOUR SAV FILE!
+I tried to ensure that all SAV file record-length problems were accounted for,
+but if an unexpected record type slips by my record checking and formatting
+routines, you may be given erroneous file data.
+
+PLEASE NOTE AGAIN -- If you are doing your own edits via the HEX editor and
+the database system, this is a great way to check your results.  For example,
+if you load a database MISL record and insert it into your SAV file, make sure
+those new missiles show up under the "SELL" area at the "SHIP DEALER".  If they
+don't show up -- chances are you need to do more experimentation (see the ref
+to the "F" database record described below).
+*******************************
+
+
+
+
+
+*******************************************************************************
+                 CHANGING AND COMPLETING PLOT LINE MISSIONS
+One of the new features of PREDIT 2.1 is the ability to change to a new plot
+line mission and also to "force" complete a plot mission that you've been
+unable to successfully finish.  MAIN MENU item <5> takes you to the MISSION
+SELECTION menu.  You will notice that PREDIT tries to analyze your current
+active plot mission and will give you a display of several parameters.  Notice
+that the mission analysis shows you a mission number as well as the current
+SITUATION and MISSION.  The following paragraph summarizes Privateer plot
+line SITUATIONS and MISSIONS.
+
+Privateer plot missions are grouped as SITUATIONS with each situation containing
+one or more MISSIONS.  Once you complete the missions in a SITUATION, you
+proceed to the next SITUATION.  Situations are grouped primarily according to
+your star base location and the people you interact with.  Privateer currently
+has 6 situations numbered 0, 1, 2, 3, 4, 5, and 7.  The missions in each
+situation are numbered as A, B, C, and D.  Situation 0, Mission A is the first
+plot mission in the game where you go to New Detroit and meet Sandoval.  The
+following listing summarizes the situations and missions, and the individuals
+you interact with.
+
+SITUATION	MISSIONS	PERSON			COMMENTS
+0		A		Sandoval		Only 1 Sandoval mission.
+1		ABCD		Tayla			4 missions.
+2		ABCD		Lynch			4 missions.
+3		ABCD		Masterson		4 missions.
+4		ABCD		Murphy/Monkhouse 	4 missions.
+5		ABCD		Cross			4 missions.
+7		AB		Admiral Terrell		2 missions, and a time
+							delay between the end of
+							Situation 5 and the
+							start of Situation 7.
+
+If you choose to COMPLETE a mission, the mission will be flagged as DONE. Note
+that other mission objectives may NOT be finished.  For example, Situation 4
+Mission C requires you to break the blockade and meet Dr. Monkhouse on Palan.
+PREDIT will complete the mission for you, but you will have to put your ship
+at Palan if you are not already there (MAIN MENU item <3>).
+
+Mission Selection Menu item <1> lets you select a new plot mission.  PREDIT
+does this by placing you at the END OF THE PREVIOUS MISSION.  Once back in
+the game, you must do whatever is required to start the new mission -- talk
+to someone in the bar, library, etc.  This forces Privateer to set up the new
+mission for you.  PREDIT will place your ship at the correct location for
+starting the new mission.
+
+CAUTION -- Some game missions are part of a series that "builds" data as you
+progress, i.e., you get more NAV points in the Situation 5 Exploratory Service
+missions as you do more missions.  If you choose a new mission and you notice
+you're missing important data, you may need to back up a few missions and start
+there.
+
+
+
+
+
+*******************************************************************************
+                         SAV FILE HEX/ASCII EDITOR
+PREDIT provides a general HEX/ASCII editor that shows up in several places.
+If you want to edit a byte or two while viewing the ENTIRE SAV file, select
+MAIN MENU item <13>.  Just enter the byte offset and hex value (lower case
+only).  Press <Return> with no entries to exit.  This is a good place to
+check the results of your individual SAV file record or database record edits
+described below.
+
+
+
+
+
+*******************************************************************************
+                    INDIVIDUAL SAV FILE RECORD EDITS
+Selecting MAIN MENU item <12> takes you to the RECORD EDITING AND SAVING MENU.
+This is where you edit individual SAV file records and do all database work.
+Item <1> presents you with a list of the loaded SAV file records ordered in a
+one-up manner.  Enter the number of the record you want to edit or view.
+There's always an <EXIT> in the list for aborting this menu.  All record
+names are short ASCII text names and a couple are short -- 1 or 2 characters.
+These names are CRITICAL, so changing them usually HALTS YOUR SYSTEM when the
+game runs!  The HEX/ASCII editor presents you with the record's contents.  Edit
+the data if you want to, and exit by typing <done> at the prompt.
+
+All edits you make to SAV file records are immediately incorporated into your
+SAV file BUFFER.  They are NOT saved to disk until you specifically SAVE your
+SAV file( item <14> in the MAIN MENU.)   Abort PREDIT with no saves if you
+edit the wrong data.
+
+
+
+
+
+*******************************************************************************
+                       PREDIT DATABASE OVERVIEW
+Since Privateer stores a large part of its vehicle data in your SAV file
+FORMS and RECORDS, the author thought it would be a good idea to be able to
+selectively store these vehicle "components" in a database for later usage.
+If you edit a record in your SAV file which gives you "super shields" for
+example, save your unique record into the database.  Once in the database,
+the record can be used with other SAV files.  Now everyone can have your
+"super shields"!
+
+The database file is called "PRECS.DAT".  The file structure is simple and is
+given here for those wanting to alter it.  PREDIT allows you to control whether
+a database record is "ACTIVE" or "ERASED".  If erased, the record is still in
+the database, but doesn't show up when item <2>, RETRIEVE/EDIT a DATABASE
+RECORD, of the RECORD EDITING AND SAVING MENU is called (item <12> in the MAIN
+MENU).
+
+A sample PRECS.DAT file is included with this package.  This file includes a
+record called "F".  The "F" record is sometimes found as the LAST RECORD IN FORM
+4.  The author found that replaced MISL records in FORM 4 (MISL records list
+the type and number of missiles on your vehicle) sometimes caused Privateer to
+corrupt the engine and shield components.  Adding an "F" record immediately
+after the MISL record in FORM 4 seemed to fix engine and shield problems.
+Experiment with it.
+
+The database listings can get quite long.  Item <4>, ERASE/UNERASE DATABASE
+RECORDS shows you ALL ACTIVE/ERASED records in the database.  Follow the
+directions there for activating or erasing a database record.
+
+
+The following summarizes the structure of the record entries in "PRECS.DAT" -
+note that all numbers are HEX:
+
+   ACTIVE or ERASED HEADER | RECORD LENGTH | RECORD | TEXT ID | 2 '0' BYTES
+
+ACTIVE HEADER = FF FF FF FF 4B 26 57
+ERASED HEADER = FF 0  0  FF 4B 26 57
+
+RECORD LENGTH = 1 byte giving the length of the RECORD in bytes.
+
+RECORD = complete record consisting of the ASCII name, blanks (0 value bytes),
+	 data size bytes, and any data.
+
+TEXT ID = User-entered text description of the database entry.  Up to 24 chars
+	  long.
+
+2 '0' BYTES = Two bytes having a value of 0.
+
+When you "ERASE" a database entry, all that's changed is the entry's HEADER
+contents.  The entry is still present in the database.  Use your own hex
+editor to PERMANENTLY remove database entries.
+
+
+
+*******************************************************************************
+                  RETRIEVING/EDITING DATABASE RECORDS
+Select MAIN MENU item <12> and go to the RECORD EDITING AND SAVING MENU.
+Select item <2> to view the ACTIVE database records.  Select a record.  The
+HEX/ASCII editor will be called to allow you to do any edits.  Exit the editor
+by typing <done> at the prompt.
+
+Once you are <done> with the editor, PREDIT will see if the record from the
+database has a NAME that appears in the loaded SAV file.  If the database
+record name matches a SAV file record name, you will be prompted for REPLACING
+your SAV file record with the one you just edited from the database.
+
+If your database record NAME DOES NOT MATCH a record name in the SAV file, you
+will be prompted for INSERTING the record into your SAV file.  You will need
+to know the FORM NUMBER and ORDER of the records for doing an insertion
+operation (that won't hang the game).  FORMS are ordered in the file starting
+with FORM 0, which usually contains the PLAYSCOR and KILL records.  The records
+at the end of the SAV file which are not included in any FORM are designated as
+being in FORM 255.  Follow the onscreen directions for doing the insertion.
+Experiment!
+
+***NOTE:  Throwing the DEBUG switch will let you SEE THE CONTENTS OF ALL FORMS
+including FORM NUMBERS and RECORDS.
+
+
+
+
+*******************************************************************************
+                      ADDING RECORDS TO THE DATABASE
+Select MAIN MENU item <12> and go to the RECORD EDITING AND SAVING MENU.
+Call up a record from either your loaded SAV file (item <1>) or the database
+(item <2>).  Edit the record if you need to.  Select item <3> to SAVE your
+edited or unedited record to the database.  All new entries are made ACTIVE.
+
+
+
+
+
+*******************************************************************************
+   FOR THOSE WHO WISH TO ANALYZE OR WRITE ROUTINES TO MODIFY THEIR SAV FILES:
+		            VIEWING MY DEBUG CODE
+Privateer produces a SAV file that has VARIABLE LENGTH FORMS and RECORDS.  The
+length of these records is based on your current ship setup, equipment, cargo,
+etc.  To help and encourage others to experiment with their SAV files, I have
+included a "DEBUG" switch (as a prompt on PREDIT startup) to let you view all
+DEBUG listings.  Some listings get quite long but show you the general structure
+of the SAV file, the FORM numbers, RECORD listings, etc.
+
+
+Any programs or analysis routines you write MUST take these variable length
+records into account.  In order to allow variable FORM/RECORD lengths,
+Privateer creates a SAV file using the following general format:
+	1)	The head of the file contains pointers to specific data
+		areas in the file such as the pilot name string, call
+		sign string, etc.
+	2)	Data areas are called "FORMS" (in ASCII text), with each
+		FORM having a specified length given immediately after the
+		FORM name.  The author designates these FORMS in a one-up
+		manner beginning with FORM 0 close to the start of the SAV file.
+		The records at the end of the SAV file, not in a FORM, are
+		designed as being in FORM 255.
+	3) 	Inside the FORMS are RECORDS, with each RECORD having an
+		ASCII name followed by the RECORD's DATA SIZE in bytes.
+		The RECORD DATA immediately follows the DATA SIZE with the
+		number of DATA bytes equal to the RECORD DATA SIZE value.
+
+
+
+
+
+*******************************************************************************
+                         FINAL COMMENTS
+PREDIT was not written to allow one to cheat his/her way through Privateer.
+It is intended as a tool to allow your progression through Privateer in a
+shorter-than-normal time span while still giving you LOTS of enjoyment and
+fun with experimentation.  Please use it with this attitude in mind.
+
+If you have any questions or comments concerning this program or the SAV
+file data structures, or YOU WISH TO MAKE A DONATION of $5-$10 (please make
+any checks payable to WAYNE SIKES), please contact me at:
+
+Wayne Sikes
+435 Sego Lily
+Bosque Farms, NM  87068
+
+CompuServe:    70733,1562
+Internet E-Mail Address: sikes@meediv.lanl.gov
+Phone:  (505)-869-3522
+
+Feel free to distribute copies of this program. The only thing I ask is
+that you DO NOT MODIFY this text file or the PREDIT.EXE program.  When
+distributing, PLEASE ALWAYS INCLUDE A COPY OF THIS TEXT FILE ALONG WITH
+THE EXECUTABLE.  If you include this program in any retail or wholesale
+software packages, compilations, libraries, archives, etc. please contact
+me.  As with all my analysis and engineering software, this program is
+copywritten by K & W Computer Works.
+
+Thank you for using PREDIT and enjoy Privateer!
+
+
+*********************  END OF PREDIT.DOC FILE ***********************
