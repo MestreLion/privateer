@@ -1,0 +1,290 @@
+Records and Forms
+-----------------
+A *Record* is a named data structure used extensively in SAV files. They can be
+grouped in *Forms*, which are also valid Records themselves. Forms can be nested
+by containing both leaf and form records.
+
+The Record format is: *
+  header[]:
+    name[]       = <string>\0: possibly max length = 9 (including the NUL)
+    pad[1]       = \0
+    data_size[2] : data size (length), in bytes, BIG Endian!
+  data[data_size]: record data
+
+if record <name> is FORM or REALFORM: record is a *record container* (Form):
+  header[]       : same format as a "leaf" (ordinary) Record from above
+  data[data_size]:
+    record[]     : an array of contiguous records up to <data_size>
+    tail[]       : any remaining data from a partial/incomplete record read
+                   up to form's <data_size>, or which would have exceeded it.
+
+*: One may interpret records differently, like PREDIT does, given it considers
+'F' and 'REAL' as first-class leaf records with a special <name>-only <header>
+without <data_size> and 0-byte <data>. Both are followed by a 'FORM' string:
+  name[]         : string without NUL, up to 8 bytes, from a list of known names
+                   or rules (only upper letters, until a 'FORM' is found, etc)
+  data_size[4]   : optional, still big endian
+  data[data_size]: no change
+
+In such model, Forms are always named 'FORM', and the tail data is regarded as
+a special <name>-only, <data_size>-less record.
+
+It all boils down to how you parse a record's <name>, what you expect to be its
+terminator, how you deal with truncated/missing <data_size>, and what you require
+of some data to consider it a <name>, an indepedent record, or junk/tail data.
+
+There are 2 known cases of <tail> data in SAV files created by Privateer:
+- 'F': After the 'MISL' record, which is always the last record inside the first
+  form that follows the 'FITECTRL' record, FORM-4 when using sequential numbering,
+  starting from 0 and ignoring nesting, like PREDIT does.
+  That form's <data_size> always indicates a single extra byte after 'MISL',
+  which always has a value of 70 (0x46), the ascii for 'F'.
+  The next record, i.e., FITECTRL's and FORM-4's sibling, is always a FORM, so
+  some informally call it the 'FFORM'. But formally the 'F' byte belongs to
+  FORM-4, and this next record is FORM-5.
+
+- The byte after the last FITECTRL's sibling record, namely 'NNAQV', overlapping
+  with the Player's Name first byte (as pointed by in the save header offsets).
+  FITECTRL's and NNAQV's form is always REALFORM, which PREDIT name as FORM-3,
+  as it considers 'REAL' a (special) last record in the parent FORM-2. Regardless
+  of naming, *both* FORM-2 and REALFORM/FORM-3 are always consistent in including
+  this extra byte in their respective <data_size>s.
+
+Speaking of 'F', 'REAL', PREDIT, tails and partial records...
+
+Partial records can be handled in several ways, depending on how incomplete they are:
+- If <header> was fully read, <data> could be truncated to fit, and <data_size>
+    adjusted accordingly.
+- If <header> is truncated, the whole data could be seen as an invalid record and
+    tossed in the form's <tail>. That's the sanest approach IMHO.
+- If <pad>/<data_size> are missing or incomplete, but <name> data is "valid",
+    it could be marked as a special <data_size>-less record That's how PREDIT handles
+    'F' (and 'REAL' too, but for a completely different reason). Must set rules
+    to define what is a valid record <name>.
+- It is unclear how PREDIT would handle non-ascii data when parsing <name>,
+    or a truncated (but not entirely missing) <data_size> after a valid <name>.
+
+In any case, 'F' and 'REAL', if considered to be of the same <data_size>-less
+special record type, came to be for a *very* different reasons:
+
+- FORM-4's <data_size> *mandates* 'F' to be truncated to a 1-byte data. The fact
+  that a FORM record follows it must be seen as a coincidence: to respect FORM-4
+  <data_size> we must stop parsing at 'F' *regardless* of what comes next.
+- There's no such constraint when parsing 'REALFORM', as it appears well within
+  its form's <data_size> boundary. The only reason for breaking it into 2 records
+  is, apparently, because the 'FORM' string showed up.
+
+So PREDIT puts 'REAL' in the same category as 'F' when it isn't required to do so,
+That suggests it does the same for any name matching /([A-Z]+)FORM/ (or is it just
+for 'REAL'?). Maybe it does the same with 'FFORM' too, and the fact that in F's
+case it is *required* to do is a happy coincidence.
+
+The whole FORM-255, "formless" records thing also suggests PREDIT's form parsing
+is purely sequential and not really nested/recursive, as it is unable to put
+'NNAQV' (and 'ECMS', 'RREPR', etc) as a sibling of the last scanned form. So when
+a FORM begins it automatically ends and forgets the previous one. There's no notion
+of a form "containing" other forms, just an array of forms, each one containing only
+leaf records. It might respect a form's <data_size> as an upper boundary when reading
+data, but it does not bother when a form's <data_size> is not entirely consumed.
+
+This simplistic sequential model might work, but the way <data_size>s add up in
+a SAV file strongly indicates that Privateer data model is indeed nested.
+
+Any chosen model must be able to:
+
+- Properly reconstruct a file given a change in a record's data and *length*,
+  adjusting <data_size> of all affected forms and records accordingly.
+
+- Tell apart a record/junk data that lacks <data_size>, such as 'F', from a
+  regular record such as 'AFTB' that has a full header with <data_size> set to 0.
+
+- Account for quirks in SAV files generated by Privateer, such as 'F' and the
+  overlapping byte in Player's name, and mimic such quirks as to be indisguishable
+  from a SAV created in-game.
+
+
+===============================================================================
+
+PREDIT features not yet fully figured out:
+- Missions
+- Ship Type
+- Missiles (need MISL/LNCH exact format)
+- Shield Level (SHLDINFO, b'SHIELDS\x00<value>') need values
+
+
+Current Location / Base
+-----------------------
+Offset 43 (why?)
+Bases ordered alphabetically, except the last. 60 total
+00 - Achilles
+01 - Anapolis
+02 - Basque
+04 - Basra
+...
+38 - Victoria
+39 - Vishnu
+3a - Wickerton
+3b - Derelict Base
+
+
+PLAYSCOR
+--------
+Reputation with Factions (Friendly/Neutral/Hostile)
+https://www.wcnews.com/chatzone/threads/privateer-rf-reputation.25908/
+
+18 bytes, 2 bytes for each faction, *signed* 16-bit little-endian
+ Hostile: < -25
+ Neutral: >= -25 and <= +25
+Friendly: > +25
+
+Bytes/Factions
+ 0- 1: Merchants
+ 2- 3: Hunters
+ 4- 5: Confeds
+ 6- 7: Kilrathi
+ 8- 9: Militia
+10-11: Pirates
+12-15: <2 unknowns>
+16-17: Retros
+
+Defaults:
+   0: Merchants
+   0: Hunters
+   0: Confeds
+ -50: Kilrathi
+   0: Militia
+ -50: Pirates
+-128: <unknown1>
+ 127: <unknown2>
+-128: Retros
+
+   0: Merchants, Hunters, Confeds, Militia
+ -50: Kilrathi, Pirates
+-128: Retros (and no way go up, except negative overflow)
+
+Data:
+b'\x00\x00\x00\x00\x00\x00'  # Merchants, Hunters, Confeds
+b'\xce\xff'                  # Kilrathi
+b'\x00\x00'                  # Militia
+b'\xce\xff'                  # Pirates
+b'\x80\xff\x7f\x00'          # <unknowns>, AFAIK never changes
+b'\x80\xff'                  # Retros, never goes up
+
+
+KILL
+----
+Kills per Faction
+Exactly same format as PLAYSCOR, including signed numbers
+Default is, obviously, 18 * b'\0'
+The 2 unknowns AFAIK are always zero. (maybe alien?)
+
+
+WEAPGUNS
+--------
+Guns loadout: Mounted guns type and location
+
+Variable size, 2 bytes per mounted gun: type and location
+Some pairs are zeroed, for no obvious reason. Should be left alone
+
+Byte 1: Gun Type (might be "off-by one")
+ 0 = Neutron Gun [0? Needs Verification!]
+ 1 = Meson Blaster
+ 2 = Ionic Pulse Cannon
+ 3 = Mass Driver
+ 4 = Particle Cannon
+ 5 = Laser [Confirmed]
+ 6 = Plasma Gun
+ 7 = Tachyon Cannon [Confirmed]
+ 8 = Steltek Gun (Unboosted) / Fusion [RF]
+ 9 = Steltek Gun (Boosted)
+10 = Steltek Gun (Alien Pod - No MDF Display)
+
+Byte 2: Gun Location (slot must exist in ship!)
+ 1 = Outer Port
+ 2 = Inner Port
+ 3 = Inner Starboard
+ 4 = Outer Starboard
+ 5 = Rear/Tail (or Top) Turret slot 1
+ 6 = Bottom Turret slot 1 [presumed]
+ 7 = Rear/Tail (or Top) Turret slot 2
+ 8 = Bottom Turret slot 2 [presumed]
+
+Default data (4 bytes, as a Taurus only have 2 gun slots):
+b'\x05\x02'  # Laser on Inner Port
+b'\x00\x00'  # Empty (if anything is mounted, should presumably be on 3 - Inner StarBoard)
+
+
+LNCH/MISL
+---------
+Missile/Torpedo Launchers loadout (type and slot) and quantities
+
+Seems to be similar to WEAPGUNS, but for Weapons instead of Guns.
+One record deals with launcher *type* and mounted slot, the other one with missile
+quantities. PREDIT's convoluted way of editing them suggests they have a non-trivial
+relationship.
+
+
+CCRGI
+-----
+Credit and Cargo Information
+
+Fixed 8 bytes:
+0-3: Credits, 32-bit little endian
+4-5: ?
+  6: Secret Compartiment (given by Tayla). Boolean 0/1
+  7: Cargo Expansion. Boolean
+
+Default data:
+b'\xd0\x07\x00\x00'  # 7d0 = 2000 credits
+b'd\x00'             # ???, seems to be constant
+b'\x00\x00'          # No secret compartiment nor cargo expansion
+
+
+ECMS
+----
+ECM Level
+
+1 byte, percentage of enemy missles NOT locked on you
+from 00 (0%, no protection) to \x64 for 100% (no missile locks)
+Not present in a new game
+
+In-game values:
+00 - No ECM      ( 0%)
+19 - ECM Level 1 (25%)
+32 - ECM Level 2 (50%)
+4b - ECM Level 3 (75%)
+
+
+TRGTINFO
+--------
+Scanner Model
+
+9 bytes: b'TARGETNG' + <model>, default \x3d (Iris Mk II)
+Iris   Mk I       3c
+       Mk II      3d
+       Mk III     3e
+
+Hunter Aw6        3f
+       Aw6i       40
+       Infinity   41
+
+B&S    Tripwire   42
+       Eye        43
+       Omni       44
+
+
+AFTB
+----
+Afterburner perhaps?
+
+0 bytes. Record is absent in a new game, so maybe its existence indicates True
+
+
+ENERINFO
+--------
+Engine Upgrades, in a very non-intuitive format.
+
+
+SHLDINFO
+--------
+Shield Upgrades. Not a very friendly format either.
