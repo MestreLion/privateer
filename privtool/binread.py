@@ -200,3 +200,32 @@ class binopen:
         if seek:
             self._f.seek(expected_pos)
         return False
+
+
+def is_upper(data: bytes):
+    """Return True if empty or all bytes are ASCII uppercase letters [A-Z]"""
+    # For single chars, `b'A' <= data <= b'Z'` is neglectfully faster, but...
+    # For multiple chars this is faster than any method *by an order of magnitude*!
+    # Fastest known alternative: all(65 <= c <= 90 for c in data)
+    return data.isupper() and data.isalpha()
+
+
+def is_upper_string(s: str):
+    """Return True if empty or all characters are ASCII uppercase letters [A-Z]"""
+    return s.isupper() and s.isalpha() and is_ascii_string(s)
+
+
+# bytes.isascii() in Python 3.7+
+def is_ascii(data: bytes):
+    """Return True if empty or all bytes are in ASCII range [0-127]"""
+    return all(c <= 127 for c in data)
+
+
+# str.isascii() in Python 3.7+
+def is_ascii_string(s: str):
+    """Return True if empty or all characters are in ASCII range [U+0000-U+007F]"""
+    try:
+        s.encode('ascii')
+    except UnicodeEncodeError:
+        return False
+    return True
